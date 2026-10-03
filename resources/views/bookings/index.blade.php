@@ -233,16 +233,17 @@
                         <div class="card card-custom mb-4">
                             <div class="card-header-custom">
                                 <span><i class="fa-solid fa-screwdriver-wrench text-danger me-2"></i>3. Pilih Paket Servis Honda</span>
-                                <span class="badge bg-primary-subtle text-primary">Standar Astra Honda</span>
+                                <span class="badge bg-danger-subtle text-danger">Wajib Dipilih</span>
                             </div>
                             <div class="card-body p-4">
-                                <div class="invalid-feedback d-block mb-2" id="error-service_package_id"></div>
+                                <p class="text-muted small mb-3">Silakan pilih salah satu paket servis resmi Honda di bawah ini:</p>
+                                <div class="invalid-feedback d-block mb-3 fw-bold fs-6" id="error-service_package_id"></div>
                                 <div class="row g-3">
                                     @foreach($packages as $pkg)
                                     <div class="col-md-6">
-                                        <div class="package-card @if($loop->first) selected @endif" data-id="{{ $pkg->id }}" data-price="{{ $pkg->price }}">
+                                        <div class="package-card" data-id="{{ $pkg->id }}" data-price="{{ $pkg->price }}">
                                             <div class="form-check">
-                                                <input class="form-check-input package-radio" type="radio" name="service_package_id" id="pkg_{{ $pkg->id }}" value="{{ $pkg->id }}" @if($loop->first) checked @endif required>
+                                                <input class="form-check-input package-radio" type="radio" name="service_package_id" id="pkg_{{ $pkg->id }}" value="{{ $pkg->id }}" required>
                                                 <label class="form-check-label w-100" for="pkg_{{ $pkg->id }}">
                                                     <div class="d-flex justify-content-between align-items-start mb-1">
                                                         <h6 class="fw-bold mb-0 text-dark">{{ $pkg->name }}</h6>
@@ -625,10 +626,12 @@ $(document).ready(function() {
         $('.package-card').removeClass('selected');
         $(this).addClass('selected');
         $(this).find('input[type="radio"]').prop('checked', true);
+        $('#error-service_package_id').text('');
         calculateTotal();
     });
 
     $('.package-radio').on('change', function() {
+        $('#error-service_package_id').text('');
         calculateTotal();
     });
 
@@ -660,6 +663,11 @@ $(document).ready(function() {
             let card = selectedPkg.closest('.package-card');
             pkgPrice = parseFloat(card.data('price')) || 0;
             pkgName = card.find('h6').text();
+            $('#summaryPackageName').text(pkgName + ':');
+            $('#summaryPackagePrice').text(formatRupiah(pkgPrice));
+        } else {
+            $('#summaryPackageName').text('Paket Servis:');
+            $('#summaryPackagePrice').text('Belum dipilih');
         }
 
         let partsPrice = 0;
@@ -671,8 +679,6 @@ $(document).ready(function() {
 
         let grandTotal = pkgPrice + partsPrice;
 
-        $('#summaryPackageName').text(pkgName + ':');
-        $('#summaryPackagePrice').text(formatRupiah(pkgPrice));
         $('#summaryPartsCount').text(partsCount);
         $('#summaryPartsPrice').text(formatRupiah(partsPrice));
         $('#summaryTotalPrice').text(formatRupiah(grandTotal));
@@ -774,7 +780,7 @@ $(document).ready(function() {
         $('.is-invalid').removeClass('is-invalid');
         $('.invalid-feedback').text('');
 
-        // Client-side quick check
+        // Client-side quick check: Slot Jam
         if (!currentSelectedSlot) {
             $('#error-service_time').text('Silakan klik salah satu slot jam servis yang tersedia.');
             Swal.fire({
@@ -783,6 +789,22 @@ $(document).ready(function() {
                 text: 'Harap pilih slot jam servis yang masih tersedia sebelum melanjutkan.',
                 confirmButtonColor: '#D3122A'
             });
+            return;
+        }
+
+        // Client-side quick check: Paket Servis Honda (Wajib Dipilih)
+        let packageId = $('.package-radio:checked').val();
+        if (!packageId) {
+            $('#error-service_package_id').text('Silakan pilih salah satu paket servis Honda terlebih dahulu.');
+            Swal.fire({
+                icon: 'warning',
+                title: 'Paket Servis Belum Dipilih',
+                text: 'Harap pilih salah satu paket servis resmi Honda sebelum melanjutkan pendaftaran.',
+                confirmButtonColor: '#D3122A'
+            });
+            $('html, body').animate({
+                scrollTop: $('#error-service_package_id').offset().top - 120
+            }, 300);
             return;
         }
 
@@ -827,8 +849,7 @@ $(document).ready(function() {
                         $('#summaryCustomer').text('-');
                         $('#summarySlot').text('Pilih Jam').removeClass('bg-success').addClass('bg-danger');
                         $('.package-card').removeClass('selected');
-                        $('.package-card:first').addClass('selected');
-                        $('.package-card:first input').prop('checked', true);
+                        $('.package-radio').prop('checked', false);
                         calculateTotal();
 
                         // Reload data
